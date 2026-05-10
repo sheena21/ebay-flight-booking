@@ -12,11 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 import ebay.flightbooking.service.BookingService;
 
 @RestController
+
 @RequestMapping("/bookings")
+
 public class BookingController {
 
     private final BookingService bookingService;
-
     public BookingController(BookingService bookingService) {
         this.bookingService = bookingService;
     }
@@ -24,9 +25,11 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<BookingResponse> bookTicket(
             @Valid @RequestBody BookingRequest request) {
-
         BookingResponse response = bookingService.bookTicket(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 }
