@@ -12,6 +12,8 @@ import ebay.flightbooking.repository.BookingRepository;
 import ebay.flightbooking.repository.FlightRepository;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 
@@ -20,6 +22,20 @@ public class BookingService {
     private final FlightRepository flightRepository;
 
     private final BookingRepository bookingRepository;
+
+    /*
+
+     Separate lock per flight to reduce
+
+     unnecessary contention across bookings
+
+     for different flights.
+
+     */
+
+    private final ConcurrentMap<String, Object> flightLocks =
+
+            new ConcurrentHashMap<>();
 
     public BookingService(
 
@@ -41,15 +57,25 @@ public class BookingService {
 
                 request.getFlightNumber());
 
-        validateSeatAvailability(flight);
+        Object flightLock = flightLocks.computeIfAbsent(
 
-        updateAvailableSeats(flight);
+                flight.getFlightNumber(),
 
-        Booking booking = createBooking(request);
+                key -> new Object());
 
-        bookingRepository.save(booking);
+        synchronized (flightLock) {
 
-        return mapToResponse(booking);
+            validateSeatAvailability(flight);
+
+            updateAvailableSeats(flight);
+
+            Booking booking = createBooking(request);
+
+            bookingRepository.save(booking);
+
+            return mapToResponse(booking);
+
+        }
 
     }
 
